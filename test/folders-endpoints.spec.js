@@ -1,7 +1,7 @@
 const { expect } = require('chai')
 const knex = require('knex')
 const app = require('../src/app')
-const { makeFoldersArray } = require('./folders.fixtures')
+const { makeFoldersArray, makeMaliciousFolder } = require('./folders.fixtures')
 
 describe('Folders Endpoints', function() {
     let db
@@ -46,7 +46,23 @@ describe('Folders Endpoints', function() {
         })
 
         context('Given an XSS attack folder', () => {
+            const { maliciousFolder, expectedFolder } = makeMaliciousFolder()
 
+            beforeEach('insert malicious folder', () => {
+                return db
+                    .into('noteful_folders')
+                    .insert(maliciousFolder)
+            })
+
+            it('removes XSS attack content', () => {
+                return supertest(app)
+                    .get(`/api/folders`)
+                    .expect(200)
+                    .expect(res => {
+                        expect(res.body[0].id).to.eql(expectedFolder.id)
+                        expect(res.body[0].name).to.eql(expectedFolder.name)
+                    })
+            })
         })
 
     })
@@ -80,7 +96,22 @@ describe('Folders Endpoints', function() {
         })
 
         context('Given an XSS attack folder', () => {
+            const { maliciousFolder, expectedFolder } = makeMaliciousFolder()
 
+            beforeEach('insert malicious folder', () => {
+                return db
+                    .into('noteful_folders')
+                    .insert(maliciousFolder)
+            })
+
+            it('removes XSS attack content', () => {
+                return supertest(app)
+                    .get(`/api/folders/${maliciousFolder.id}`)
+                    .expect(200)
+                    .expect(res => {
+                        expect(res.body.name).to.eql(expectedFolder.name)
+                    })
+            })
         })
     })
 
@@ -119,7 +150,15 @@ describe('Folders Endpoints', function() {
         })
 
         it(`removes XSS attack content from response`, () => {
+            const { maliciousFolder, expectedFolder } = makeMaliciousFolder()
 
+            return supertest(app)
+                .post(`/api/folders`)
+                .send(maliciousFolder)
+                .expect(201)
+                .expect(res => {
+                    expect(res.body.name).to.eql(expectedFolder.name)
+                })
         })
     })
 
@@ -153,6 +192,60 @@ describe('Folders Endpoints', function() {
                         return supertest(app)
                             .get(`/api/folders`)
                             .expect(expectedFolders)
+                    })
+            })
+        })
+    })
+
+    describe(`PATCH /api/folders/:folder_id`, () => {
+        context(`Given no folders`, () => {
+            it('responds with 404', () => {
+                const folderId = 98765
+                return supertest(app)
+                    .patch(`/api/folders/${folderId}`)
+                    .expect(404, { error: { message: `Folder doesn't exist` } })
+            })
+        })
+
+        context(`Given there are folders in the database`, () => {
+            const testFolders = makeFoldersArray()
+
+            beforeEach('insert folders', () => {
+                return db
+                    .into('noteful_folders')
+                    .insert(testFolders)
+            })
+
+            it('responds with 204 and updates the folder', () => {
+                const idToUpdate = 2
+                const updateFolder = {
+                    name: 'Updated folder name'
+                }
+
+                const expectedFolder = {
+                    ...testFolders[idToUpdate - 1],
+                    ...updateFolder
+                }
+                return supertest(app)
+                    .patch(`/api/folders/${idToUpdate}`)
+                    .send(updateFolder)
+                    .expect(204)
+                    .then(res => {
+                        return supertest(app)
+                            .get(`/api/folders/${idToUpdate}`)
+                            .expect(expectedFolder)
+                    })
+            })
+
+            it('responds with 400 when no required fields supplied', () => {
+                const idToUpdate = 2
+                return supertest(app)
+                    .patch(`/api/folders/${idToUpdate}`)
+                    .send({ irrelevantField: 'foo' })
+                    .expect(400, {
+                        error: {
+                            message: `Request body must contain a value for 'name'`
+                        }
                     })
             })
         })

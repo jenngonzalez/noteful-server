@@ -27,10 +27,11 @@ const FoldersService = {
         .delete()
     },
   
-    updateFolders(knex, id, newFolderName) {
+    updateFolder(knex, id, newFolderName) {
       return knex('noteful_folders')
         .where({ id })
         .update(newFolderName)
+        .returning('*')
     },
   }
   

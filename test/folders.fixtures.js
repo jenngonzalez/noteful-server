@@ -15,4 +15,21 @@ function makeFoldersArray() {
     ]
 }
 
-module.exports = { makeFoldersArray }
+function makeMaliciousFolder() {
+    const maliciousFolder = {
+        id: 911,
+        name: 'Folder with <script>alert("xss");</script>'
+    }
+
+    const expectedFolder = {
+        ...maliciousFolder,
+        name: 'Folder with &lt;script&gt;alert(\"xss\");&lt;/script&gt;'
+    }
+
+    return {
+        maliciousFolder,
+        expectedFolder
+    }
+}
+
+module.exports = { makeFoldersArray, makeMaliciousFolder }
