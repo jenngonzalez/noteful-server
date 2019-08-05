@@ -3,6 +3,8 @@ const knex = require('knex')
 const app = require('../src/app')
 const { makeFoldersArray, makeMaliciousFolder } = require('./folders.fixtures')
 
+// TODO: create test for deleting a folder, ensuring all notes inside that folder are deleted as well (due to CASCADE property)
+
 describe('Folders Endpoints', function() {
     let db
 
